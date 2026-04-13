@@ -1,7 +1,16 @@
-// Placeholder Supabase client. Wire up later when backend is ready.
-// import { createClient } from '@supabase/supabase-js';
-// export const supabase = createClient(
-//   process.env.NEXT_PUBLIC_SUPABASE_URL!,
-//   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-// );
-export const supabase = null as unknown as never;
+'use client';
+
+import { createClient, type SupabaseClient } from '@supabase/supabase-js';
+
+const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+if (!url || !anon) {
+  throw new Error(
+    'Missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY in .env.local',
+  );
+}
+
+export const supabase: SupabaseClient = createClient(url, anon, {
+  realtime: { params: { eventsPerSecond: 10 } },
+});

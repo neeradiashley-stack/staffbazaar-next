@@ -1,7 +1,8 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { seedWorkers, type MockWorker } from '@/services/mock/workers';
+import { type MockWorker } from '@/services/mock/workers';
+import { useWorkers } from '@/contexts/WorkersContext';
 import { StaffCard } from '@/components/staff/StaffCard';
 import { FilterBar, initialFilters, type FilterState } from '@/components/staff/FilterBar';
 import { ShortlistModal } from '@/components/staff/ShortlistModal';
@@ -20,11 +21,12 @@ function matches(w: MockWorker, f: FilterState): boolean {
 }
 
 export default function BrowseStaffPage() {
+  const { workers } = useWorkers();
   const [filters, setFilters] = useState<FilterState>(initialFilters);
   const [shortlistTarget, setShortlistTarget] = useState<MockWorker | null>(null);
   const [toast, setToast] = useState('');
 
-  const visible = useMemo(() => seedWorkers.filter((w) => matches(w, filters)), [filters]);
+  const visible = useMemo(() => workers.filter((w) => matches(w, filters)), [workers, filters]);
 
   const showToast = (msg: string) => {
     setToast(msg);

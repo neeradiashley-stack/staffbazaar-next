@@ -28,8 +28,8 @@ export function PostJobWizard() {
     return true;
   };
 
-  const submit = (status: JobStatus) => {
-    const created = addJob(
+  const submit = async (status: JobStatus) => {
+    const created = await addJob(
       {
         title: data.role || 'Untitled',
         role: data.role,

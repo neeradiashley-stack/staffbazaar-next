@@ -6,6 +6,7 @@ import { JobsProvider } from '@/contexts/JobsContext';
 import { ApplicantsProvider } from '@/contexts/ApplicantsContext';
 import { SavedStaffProvider } from '@/contexts/SavedStaffContext';
 import { MessagesProvider } from '@/contexts/MessagesContext';
+import { WorkersProvider } from '@/contexts/WorkersContext';
 
 export const metadata: Metadata = {
   title: 'StaffBazaar — Hire Restaurant Staff in India',
@@ -25,13 +26,15 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body suppressHydrationWarning>
         <AuthProvider>
-          <JobsProvider>
-            <ApplicantsProvider>
-              <SavedStaffProvider>
-                <MessagesProvider>{children}</MessagesProvider>
-              </SavedStaffProvider>
-            </ApplicantsProvider>
-          </JobsProvider>
+          <WorkersProvider>
+            <JobsProvider>
+              <ApplicantsProvider>
+                <SavedStaffProvider>
+                  <MessagesProvider>{children}</MessagesProvider>
+                </SavedStaffProvider>
+              </ApplicantsProvider>
+            </JobsProvider>
+          </WorkersProvider>
         </AuthProvider>
       </body>
     </html>

@@ -2,7 +2,8 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { seedWorkers, type MockWorker } from '@/services/mock/workers';
+import { type MockWorker } from '@/services/mock/workers';
+import { useWorkers } from '@/contexts/WorkersContext';
 import { getWorkerProfile } from '@/services/mock/workerProfiles';
 import { ProfileHero } from '@/components/candidate/ProfileHero';
 import { StatsBanner } from '@/components/candidate/StatsBanner';
@@ -14,9 +15,18 @@ import { VerificationSideCard } from '@/components/candidate/VerificationSideCar
 import { ShortlistModal } from '@/components/staff/ShortlistModal';
 
 export function CandidateClient({ workerId }: { workerId: string }) {
-  const worker = seedWorkers.find((w) => w.id === workerId);
+  const { getById, loading } = useWorkers();
+  const worker = getById(workerId);
   const [shortlistOpen, setShortlistOpen] = useState<MockWorker | null>(null);
   const [toast, setToast] = useState('');
+
+  if (loading) {
+    return (
+      <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 24, marginTop: 16 }}>
+        Loading…
+      </h1>
+    );
+  }
 
   if (!worker) {
     return (

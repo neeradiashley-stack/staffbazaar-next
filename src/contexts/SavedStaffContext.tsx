@@ -9,13 +9,13 @@ import {
   useState,
   type ReactNode,
 } from 'react';
-
-const STORAGE_KEY = 'sb:saved_staff';
+import { supabase } from '@/lib/supabase';
 
 interface SavedStaffContextValue {
   savedIds: string[];
+  loading: boolean;
   isSaved: (id: string) => boolean;
-  toggle: (id: string) => void;
+  toggle: (id: string) => Promise<void>;
   count: number;
 }
 
@@ -23,42 +23,62 @@ const SavedStaffContext = createContext<SavedStaffContextValue | undefined>(unde
 
 export function SavedStaffProvider({ children }: { children: ReactNode }) {
   const [savedIds, setSavedIds] = useState<string[]>([]);
-  const [hydrated, setHydrated] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) setSavedIds(JSON.parse(raw));
-    } catch {}
-    setHydrated(true);
-  }, []);
+    let cancelled = false;
 
-  useEffect(() => {
-    if (hydrated) localStorage.setItem(STORAGE_KEY, JSON.stringify(savedIds));
-  }, [savedIds, hydrated]);
+    (async () => {
+      const { data, error } = await supabase.from('saved_staff').select('worker_id');
+      if (cancelled) return;
+      if (error) console.error('[saved_staff] load failed', error);
+      else if (data) setSavedIds(data.map((r) => r.worker_id as string));
+      setLoading(false);
+    })();
 
-  // Cross-tab sync
-  useEffect(() => {
-    const handler = (e: StorageEvent) => {
-      if (e.key === STORAGE_KEY && e.newValue) {
-        try { setSavedIds(JSON.parse(e.newValue)); } catch {}
-      }
+    const channel = supabase
+      .channel('saved-staff-changes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'saved_staff' },
+        (payload) => {
+          if (payload.eventType === 'INSERT') {
+            const row = payload.new as { worker_id: string };
+            setSavedIds((prev) => (prev.includes(row.worker_id) ? prev : [...prev, row.worker_id]));
+          } else if (payload.eventType === 'DELETE') {
+            const old = payload.old as { worker_id: string };
+            setSavedIds((prev) => prev.filter((id) => id !== old.worker_id));
+          }
+        },
+      )
+      .subscribe();
+
+    return () => {
+      cancelled = true;
+      supabase.removeChannel(channel);
     };
-    window.addEventListener('storage', handler);
-    return () => window.removeEventListener('storage', handler);
   }, []);
 
   const isSaved = useCallback((id: string) => savedIds.includes(id), [savedIds]);
 
-  const toggle = useCallback((id: string) => {
-    setSavedIds((prev) =>
-      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
-    );
-  }, []);
+  const toggle = useCallback<SavedStaffContextValue['toggle']>(async (id) => {
+    const wasSaved = savedIds.includes(id);
+    setSavedIds((prev) => (wasSaved ? prev.filter((x) => x !== id) : [...prev, id]));
+
+    const { error } = wasSaved
+      ? await supabase.from('saved_staff').delete().eq('worker_id', id)
+      : await supabase.from('saved_staff').insert({ worker_id: id });
+
+    if (error) {
+      console.error('[saved_staff] toggle failed', error);
+      setSavedIds((prev) => (wasSaved ? [...prev, id] : prev.filter((x) => x !== id)));
+      throw error;
+    }
+  }, [savedIds]);
 
   const value = useMemo(
-    () => ({ savedIds, isSaved, toggle, count: savedIds.length }),
-    [savedIds, isSaved, toggle],
+    () => ({ savedIds, loading, isSaved, toggle, count: savedIds.length }),
+    [savedIds, loading, isSaved, toggle],
   );
 
   return <SavedStaffContext.Provider value={value}>{children}</SavedStaffContext.Provider>;

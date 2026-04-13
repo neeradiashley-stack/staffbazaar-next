@@ -2,17 +2,19 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { seedWorkers, type MockWorker } from '@/services/mock/workers';
+import { type MockWorker } from '@/services/mock/workers';
 import { useSavedStaff } from '@/contexts/SavedStaffContext';
+import { useWorkers } from '@/contexts/WorkersContext';
 import { StaffCard } from '@/components/staff/StaffCard';
 import { ShortlistModal } from '@/components/staff/ShortlistModal';
 
 export default function SavedStaffPage() {
   const { savedIds, count } = useSavedStaff();
+  const { workers } = useWorkers();
   const [shortlistTarget, setShortlistTarget] = useState<MockWorker | null>(null);
   const [toast, setToast] = useState('');
 
-  const visible = seedWorkers.filter((w) => savedIds.includes(w.id));
+  const visible = workers.filter((w) => savedIds.includes(w.id));
 
   const showToast = (msg: string) => {
     setToast(msg);
